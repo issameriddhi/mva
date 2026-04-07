@@ -2,8 +2,11 @@ library(pROC)
 library(psych)
 library(corrplot)
 
-train <- na.omit(read.csv(choose.files()))
-test  <- na.omit(read.csv(choose.files()))
+train <- read.csv(choose.files())
+test  <- read.csv(choose.files())
+
+train <- na.omit(train)
+test  <- na.omit(test)
 
 train$satisfaction <- factor(train$satisfaction)
 test$satisfaction  <- factor(test$satisfaction)
@@ -28,9 +31,10 @@ hist(prob)
 par(mfrow=c(2,2))
 plot(model)
 
-df <- na.omit(read.csv(choose.files()))
+df <- read.csv(choose.files())
 
 df_num <- df[, sapply(df, is.numeric)]
+df_num <- na.omit(df_num)
 
 cor_mat <- cor(df_num)
 

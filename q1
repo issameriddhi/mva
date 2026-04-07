@@ -1,0 +1,45 @@
+library(pROC)
+library(psych)
+library(corrplot)
+
+train <- na.omit(read.csv(choose.files()))
+test  <- na.omit(read.csv(choose.files()))
+
+train$satisfaction <- factor(train$satisfaction)
+test$satisfaction  <- factor(test$satisfaction)
+
+model <- glm(satisfaction ~ ., data=train, family=binomial)
+
+prob <- predict(model, test, type="response")
+
+pred <- ifelse(prob > 0.5, levels(train$satisfaction)[2], levels(train$satisfaction)[1])
+pred <- factor(pred, levels=levels(test$satisfaction))
+
+mean(pred == test$satisfaction)
+
+table(pred, test$satisfaction)
+
+actual <- as.numeric(test$satisfaction) - 1
+roc_obj <- roc(actual, prob)
+plot(roc_obj)
+
+hist(prob)
+
+par(mfrow=c(2,2))
+plot(model)
+
+df <- na.omit(read.csv(choose.files()))
+
+df_num <- df[, sapply(df, is.numeric)]
+
+cor_mat <- cor(df_num)
+
+corrplot(cor_mat)
+
+fa.parallel(df_num, fa="fa")
+
+fa_model <- fa(cor_mat, nfactors=4, rotate="promax")
+
+print(fa_model)
+
+fa.diagram(fa_model)

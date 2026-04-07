@@ -1,0 +1,101 @@
+#sem(q3)
+
+library(conjoint)
+
+data <- na.omit(read.csv("E:/a_msc_SEM1/mva/archive (3)/apple_quality.csv"))
+if("A_id" %in% names(data)) data$A_id <- NULL
+
+cols <- c("Size","Weight","Sweetness","Crunchiness","Juiciness","Ripeness")
+data[cols] <- lapply(data[cols], function(x) as.factor(cut(x,3,labels=c("Low","Medium","High"))))
+data$Acidity <- as.factor(cut(as.numeric(data$Acidity),3,labels=c("Low","Medium","High")))
+data$Quality <- ifelse(data$Quality=="good",1,0)
+
+attributes <- data[,c(cols,"Acidity")]
+plevel_df <- data.frame(plevel=rep(c("Low","Medium","High"),7))
+
+Conjoint(data$Quality, attributes, plevel_df)
+
+utilities <- caTotalUtilities(data$Quality, attributes)
+print(utilities)
+
+importance <- caImportance(data$Quality, attributes)
+print(importance)
+
+perc <- round((importance/sum(importance))*100,2)
+
+colors <- colorRampPalette(c("#00441B", "#2CA25F", "#A1D99B"))(length(importance))
+
+barplot(importance,
+        names.arg = c("Size","Weight","Sweetness","Crunchiness","Juiciness","Ripeness","Acidity"),
+        main="Relative Importance of Apple Attributes",
+        ylab="Importance (%)",
+        col=colors,
+        border="black",
+        las=2,
+        cex.names=0.9)
+
+lm_model <- lm(Quality ~ Size + Weight + Sweetness + Crunchiness + Juiciness + Ripeness + Acidity, data = data)
+
+summary(lm_model)
+
+data$Total_Utility <- predict(lm_model)
+
+best_index <- which.max(data$Total_Utility)
+
+print("Best Apple Profile:")
+print(data[best_index, ])
+
+
+#install.packages("lavaan")
+#install.packages("semPlot")
+#install.packages("dplyr")
+
+# load packages
+library(lavaan)
+library(semPlot)
+library(dplyr)
+
+
+data <- read.csv("E:/a_msc_SEM1/mva/archive (3)/apple_quality.csv")
+
+ 
+data$A_id <- NULL
+
+# convert Quality to Numeric 
+data$Quality <- as.numeric(as.factor(data$Quality))
+
+
+data$Acidity <- as.numeric(data$Acidity)
+
+
+model <- '
+# relationships
+Sweetness ~ Size
+Juiciness ~ Size + Crunchiness
+Acidity ~ Size 
+Quality ~ Size + Sweetness + Juiciness + Acidity
+
+# covariance
+Size ~~ Crunchiness
+'
+
+fit <- sem(model, data = data)
+
+summary(fit, standardized = TRUE, fit.measures = TRUE)
+
+# PLOT
+semPaths(fit,
+         what="std",
+         layout="tree",
+         style="ram",
+         edge.label.cex=1.2,
+         sizeMan=7,
+         residuals=FALSE,
+         intercepts=FALSE,
+         nCharNodes=0,
+         posCol="darkgreen",
+         negCol="red",
+         edge.width=2,
+         weighted=TRUE,
+         fade=FALSE,
+         rotation=2)

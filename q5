@@ -1,0 +1,54 @@
+library(MASS)
+library(ggplot2) 
+library(caret)
+library(psych)
+library(ggcorrplot) 
+library(dplyr)
+library(corpcor)
+
+df <- read.csv(choose.files())
+df$Product_Category <- factor(df$Product_Category)
+
+barplot(table(df$Product_Category), col=c("green","red","blue","yellow"))
+
+lda_data <- df[,c("Quantity","Unit_Price","Sales_Revenue","Product_Category")]
+lda_m <- lda(Product_Category~., lda_data)
+lda_p <- predict(lda_m)
+lda_cm <- confusionMatrix(lda_p$class, lda_data$Product_Category)
+print(lda_cm)
+
+ggplot(df, aes(Quantity,Sales_Revenue,color=Product_Category))+
+  geom_point()+theme_minimal()
+
+df_qda <- df %>% group_by(Product_Category) %>% filter(n()>10) %>% ungroup()
+df_qda$Product_Category <- droplevels(df_qda$Product_Category)
+
+qda_data <- df_qda[,c("Quantity","Sales_Revenue","Product_Category")]
+
+qda_p <- tryCatch({
+  qda_m <- qda(Product_Category~., qda_data)
+  predict(qda_m)
+}, error=function(e){
+  qda_m <- lda(Product_Category~., qda_data)
+  predict(qda_m)
+})
+
+qda_cm <- confusionMatrix(qda_p$class, qda_data$Product_Category)
+print(qda_cm)
+
+ggplot(data.frame(Post=qda_p$posterior[,1],Cat=qda_data$Product_Category),
+       aes(Post,fill=Cat))+geom_density(alpha=0.5)
+
+print(paste("LDA:",round(lda_cm$overall["Accuracy"],4)))
+print(paste("QDA:",round(qda_cm$overall["Accuracy"],4)))
+
+num <- scale(na.omit(df[,c("Quantity","Unit_Price","Sales_Revenue","Latitude","Longitude")]))
+
+ggcorrplot(cor(num))
+KMO(num)
+cortest.bartlett(cor(num), n=nrow(num))
+fa.parallel(num,fa="fa")
+
+fa_m <- fa(num, nfactors=3, rotate="varimax")
+print(fa_m, cut=0.4)
+fa.diagram(fa_m)

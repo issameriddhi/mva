@@ -1,0 +1,43 @@
+#Cluster analysis and pca on mobile price dataset(q2)
+
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(caret)
+
+train <- read.csv(choose.files())
+
+str(train)
+colSums(is.na(train))
+
+data_unsupervised <- train
+data_unsupervised$price_range <- NULL
+
+scaled_data <- scale(data_unsupervised)
+
+pca_model <- prcomp(scaled_data, center = TRUE, scale. = TRUE)
+
+summary(pca_model)
+
+fviz_eig(pca_model)
+
+pca_data <- pca_model$x[, 1:5]
+
+fviz_nbclust(pca_data, kmeans, method = "silhouette")
+
+set.seed(123)
+kmeans_model <- kmeans(pca_data, centers = 4, nstart = 25)
+
+fviz_cluster(kmeans_model, data = pca_data)
+
+fviz_pca_ind(pca_model,
+             geom.ind = "point",
+             col.ind = as.factor(kmeans_model$cluster),
+             palette = "jco",
+             addEllipses = TRUE,
+             legend.title = "Clusters")
+
+dist_matrix <- dist(pca_data)
+hc_model <- hclust(dist_matrix, method = "ward.D2")
+
+plot(hc_model)
